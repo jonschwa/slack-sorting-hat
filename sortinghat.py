@@ -10,7 +10,6 @@ BOT_ID = os.environ.get("BOT_ID")
 
 # constants
 AT_BOT = "<@" + BOT_ID + ">"
-EXAMPLE_COMMAND = "do"
 RAND_COMMAND = "pick"
 
 # instantiate Slack & Twilio clients
@@ -23,12 +22,9 @@ def handle_command(command, channel):
         are valid commands. If so, then acts on the commands. If not,
         returns back what it needs for clarification.
     """
-    response = "Not sure what you mean. Use the *" + EXAMPLE_COMMAND + \
-               "* command with numbers, delimited by spaces."
+    response = "I don't understand anything besides " + RAND_COMMAND + "."
     if command == RAND_COMMAND:
     	response = pick_active_user(channel)
-    if command.startswith(EXAMPLE_COMMAND):
-        response = "Sure...write some more code then I can do that!"
     slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
 
@@ -51,14 +47,22 @@ def parse_slack_output(slack_rtm_output):
 
 def pick_active_user(channel):
 	rand_user_id=get_random_user_in_channel(channel)
-	user_info=slack_client.api_call("users.info",user=rand_user_id).get('user')
-	return user_info.get('real_name') + " @" + user_info.get('name')
+	if rand_user_id == False:
+		return "Well this is embarassing, but that didn't work. Am I in a private room? I respect peoples' privacy too much for that. "
+	else:
+		user_info=slack_client.api_call("users.info",user=rand_user_id).get('user')
+		return user_info.get('real_name') + " @" + user_info.get('name')
 
 def get_random_user_in_channel(channel_id):
 	info=slack_client.api_call("channels.info",channel=channel_id)
-	members=info.get('channel').get('members')
-	print members
-	return random.choice(members)
+	print info.get("ok")
+	if info.get("ok") == False:
+		print "no channel!"
+		return False
+	else:
+		members=info.get('channel').get('members')
+		print members
+		return random.choice(members)
 
 if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
