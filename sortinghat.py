@@ -51,7 +51,7 @@ def pick_active_user(channel):
 		return "Well this is embarassing, but that didn't work. Am I in a private room? I respect peoples' privacy too much for that. "
 	else:
 		user_info=slack_client.api_call("users.info",user=rand_user_id).get('user')
-		return user_info.get('real_name') + " @" + user_info.get('name')
+		return user_info.get('real_name') + " <@" + rand_user_id + ">"
 
 def get_random_user_in_channel(channel_id):
 	info=slack_client.api_call("channels.info",channel=channel_id)
