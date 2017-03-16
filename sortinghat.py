@@ -1,8 +1,13 @@
 import os
 import time
-import json
 import random
 from slackclient import SlackClient
+
+# errors to watch for
+from slackclient._client import SlackNotConnected # not actually used, see https://github.com/slackapi/python-slackclient/issues/36
+from slackclient._server import SlackConnectionError
+from websocket import WebSocketConnectionClosedException
+from socket import error as SocketError
 
 
 # starterbot's ID as an environment variable
@@ -12,7 +17,7 @@ BOT_ID = os.environ.get("BOT_ID")
 AT_BOT = "<@" + BOT_ID + ">"
 RAND_COMMAND = "pick"
 
-# instantiate Slack & Twilio clients
+# instantiate Slack client
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 
 
@@ -69,9 +74,13 @@ if __name__ == "__main__":
     if slack_client.rtm_connect():
         print("SortingHat connected and running!")
         while True:
-            command, channel = parse_slack_output(slack_client.rtm_read())
-            if command and channel:
-                handle_command(command, channel)
-            time.sleep(READ_WEBSOCKET_DELAY)
+            try:
+                command, channel = parse_slack_output(slack_client.rtm_read())
+            except (SocketError, WebSocketConnectionClosedException, SlackConnectionError, SlackNotConnected):
+                slack_client.rtm_connect()
+            else:
+                if command and channel:
+                    handle_command(command, channel)
+                time.sleep(READ_WEBSOCKET_DELAY)
     else:
         print("Connection failed. Invalid Slack token or bot ID?")
