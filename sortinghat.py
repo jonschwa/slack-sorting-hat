@@ -48,6 +48,8 @@ def parse_slack_output(slack_rtm_output):
                 # return text after the @ mention, whitespace removed
                 return output['text'].split(AT_BOT)[1].strip().lower(), \
                        output['channel']
+            elif output and 'type' in output and output['type'] == 'goodbye':
+                slackclient.rtm_connect()
     return None, None
 
 def pick_active_user(channel):
