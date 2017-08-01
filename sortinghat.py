@@ -1,5 +1,4 @@
 import os
-import time
 import random
 from slackclient import SlackClient
 
@@ -20,6 +19,11 @@ RAND_COMMAND = "pick"
 # instantiate Slack client
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 
+def connect():
+    if not slack_client.rtm_connect():
+        return False
+    slack_client.server.websocket.sock.setblocking(1) # wait for new message
+    return True
 
 def handle_command(command, channel):
     """
@@ -49,7 +53,7 @@ def parse_slack_output(slack_rtm_output):
                 return output['text'].split(AT_BOT)[1].strip().lower(), \
                        output['channel']
             elif output and 'type' in output and output['type'] == 'goodbye':
-                slack_client.rtm_connect()
+                connect()
     return None, None
 
 def pick_active_user(channel):
@@ -72,17 +76,15 @@ def get_random_user_in_channel(channel_id):
 		return random.choice(members)
 
 if __name__ == "__main__":
-    READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
-    if slack_client.rtm_connect():
+    if connect():
         print("SortingHat connected and running!")
         while True:
             try:
                 command, channel = parse_slack_output(slack_client.rtm_read())
             except (SocketError, WebSocketConnectionClosedException, SlackConnectionError, SlackNotConnected):
-                slack_client.rtm_connect()
+                connect()
             else:
                 if command and channel:
                     handle_command(command, channel)
-                time.sleep(READ_WEBSOCKET_DELAY)
     else:
         print("Connection failed. Invalid Slack token or bot ID?")
